@@ -8,21 +8,21 @@ pub trait Pair {
     fn second(&self) -> &Self::Item;
 }
 
+// Exemple implementation
 impl<T> Pair for (T,T) where T:Borrow<str> {
     type Item = T;
     fn first(&self) -> &Self::Item { &self.0 }
     fn second(&self) -> &Self::Item { &self.1 }
 }
-
 impl<T> Pair for [T;2] where T:Borrow<str> {
     type Item = T;
     fn first(&self) -> &Self::Item { &self[0] }
     fn second(&self) -> &Self::Item { &self[1] }
 }
 
+// Demonstrating that the trait above works for different T's,
+// with different lifetimes.
 fn test1() {
-    // demonstrating that the trait above works for different T's,
-    // with different lifetimes.
 
     let p1: (String, String) = ("A".to_string(), "B".to_string());
     println!("{:?}", p1.first());
@@ -30,11 +30,12 @@ fn test1() {
     let p2: (&'static str, &'static str) = ("A", "B");
     println!("{:?}", p2.first());
 
-    let p3: (&str, &str);
-    let txt = "AB";
-    p3  = (&txt[..1], &txt[1..]);
+    let txt = "AB".to_string();
+    let p3: (&str, &str) = (&txt[..1], &txt[1..]);
     println!("{:?}", p3.first());
 
+
+    let txt = "AB".to_string();
     let p4: (Cow<str>, Cow<str>) = (
         Cow::Borrowed(&txt[..1]),
         Cow::Owned("B".to_string()),
@@ -57,12 +58,50 @@ rental! {
 }
 pub use self::self_sustained_pair::*;
 
-/// trait implementation -- does not compile
+// Attempt #0
+// This is an implementation of methods similar to the trait.
+// It works. Note that no lifetime needs to be speficied.
+impl SelfSustainedPair {
+    pub fn first_<'a,'b> (&'a self) -> &'b Cow<'a, str> { self.suffix().first() }
+    pub fn second_(&self) -> &Cow<str> { self.suffix().second() }
+}
+
 /*
+// Attempt #1
+/// This is a simiar attempt to implement the Trait.
+/// It does not compile.
+impl Pair for SelfSustainedPair {
+    type Item = Cow<str>;
+    fn first(&self) -> &Cow<str> { self.suffix().first() }
+    fn second(&self) -> &Cow<str> { self.suffix().second() }
+}
+*/
+
+/*
+// Attempt #2
 impl<'a> Pair for SelfSustainedPair {
-    type Item = Cow<'_, str>;
-    fn first(&self) -> &Self::Item { self.suffix().first() }
-    fn second(&self) -> &Self::Item { self.suffix().second() }
+    type Item = Cow<'a, str>;
+    fn first(&self) -> &Cow<'a, str> { self.suffix().first() }
+    fn second(&self) -> &Cow<'a, str> { self.suffix().second() }
+}
+*/
+
+/*
+// Attempt #3
+// NB: this requires a modification of the Pair trait above
+impl<'a> Pair<'a> for SelfSustainedPair {
+    type Item = Cow<'a, str>;
+    fn first(&self) -> &Cow<'a, str> { self.suffix().first() }
+    fn second(&self) -> &Cow<'a, str> { self.suffix().second() }
+}
+*/
+
+/*
+// Attempt #4
+impl Pair for SelfSustainedPair {
+    type Item = Cow<'self, str>;
+    fn first(&self) -> &Cow<str> { self.suffix().first() }
+    fn second(&self) -> &Cow<str> { self.suffix().second() }
 }
 */
 
@@ -76,7 +115,7 @@ fn test2() {
             Cow::Owned(line[1..].to_ascii_uppercase().to_string()),
         )
     );
-    println!("{:?}", p1.suffix().first());
+    println!("{:?}", p1.first_());
     //println!("{:?}", p1.first()); // requires the Pair trait
 }
 
