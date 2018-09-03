@@ -119,6 +119,13 @@ fn test2() {
     //println!("{:?}", p1.first()); // requires the Pair trait
 }
 
+pub fn display_pairs<P: Pair, I: Iterator<Item=P>>(pairs: I) {
+    for pair in pairs {
+        println!("{:?} {:?}", pair.first().borrow(), pair.second().borrow());
+    }
+}
+
+
 fn main() {
     test1();
     test2();
